@@ -1,0 +1,10 @@
+
+class StaticMesh
+{
+
+};
+
+class StaticMeshInstance
+{
+
+};

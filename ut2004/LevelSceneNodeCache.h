@@ -42,10 +42,20 @@ public:
 	LevelSceneNodeCache();
 	LevelSceneNodeCache(LevelSceneNode* inNode);
 
+	void setupActors();
+	void inheritSetupActors(LevelSceneNodeCache* renderCache);
+
+	// Core steps to generating render states
+	void setupViewFrustum();
+	void calcVisibility();
+	void buildDrawList();
+
+	void traverseLevelBsp();
+
+public:
 	// Game thread writes to wtData while rendering thread consumes it
 	// A lock-step is used to sync the two threads
 	WorkerThreadData wtData;
-
 
 	// Lighting
 	int mDynamicLightsNum;
@@ -54,6 +64,7 @@ public:
 	DynamicLight* mDynamicLights[256];
 	DynamicLight* mStaticSahdowLights[256];
 	DynamicLight* mVisibleLights[256];
+	DynamicLight*** mLeafLights;
 
 	SceneLightMgr* mLightMgr;
 

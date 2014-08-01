@@ -15,4 +15,10 @@ enum ETransformType
 	TT_CameraToScreen
 };
 
+enum EScenePass
+{
+	SP_Solid,			// rendering solid parts of scene
+	SP_Translucent,		// rendering translucent parts of scene
+};
+
 #endif

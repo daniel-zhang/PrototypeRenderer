@@ -44,3 +44,31 @@ LevelSceneNodeCache::LevelSceneNodeCache( LevelSceneNode* inNode)
 	mBasePassCompleted = false;
 }
 
+void LevelSceneNodeCache::setupViewFrustum() { }
+void LevelSceneNodeCache::calcVisibility() { }
+
+void LevelSceneNodeCache::buildDrawList()
+{
+	wtData.worldDPS.allocateBspDrawList(wtData.model->mSections.size());
+	// buildAntiPortals();
+	traverseLevelBsp();
+	wtData.worldDPS.sortTranslucentDrawList();
+
+	// process lighting data
+	mLightMgr = new SceneLightMgr((LevelSceneNode*)mSceneNode, mZones, mLeafLights);
+	mLightMgr->processActorList(wtData.worldDPS.actorDrawList);
+	mLightMgr->processActorList(wtData.foregroundDPS.actorDrawList);
+	mLightMgr->processActorList(wtData.litActors);
+
+	// compute static light from root
+	if ((LevelSceneNode*)mSceneNode->mParent == NULL)
+	{
+		computeStaticLightShadows();
+	}
+}
+
+void LevelSceneNodeCache::traverseLevelBsp()
+{
+
+}
+

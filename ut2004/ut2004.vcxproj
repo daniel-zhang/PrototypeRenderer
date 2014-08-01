@@ -60,7 +60,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Actor.h" />
     <ClInclude Include="DrawPrioritySet.h" />
+    <ClInclude Include="DynamicActor.h" />
     <ClInclude Include="DynamicLight.h" />
     <ClInclude Include="GraphicEnums.h" />
     <ClInclude Include="ForwardDecls.h" />
@@ -72,6 +74,8 @@
     <ClInclude Include="RenderInterface.h" />
     <ClInclude Include="SceneNode.h" />
     <ClInclude Include="SceneNodeCache.h" />
+    <ClInclude Include="SceneRenderInterface.h" />
+    <ClInclude Include="StaticMesh.h" />
     <ClInclude Include="Viewport.h" />
     <ClInclude Include="ViewportCache.h" />
   </ItemGroup>
