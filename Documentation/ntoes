@@ -1,0 +1,107 @@
+Debug
+----------------------------------------------
+1. Frame time = game tick time + render frame time + gpu time
+2. Recompile changed shaders
+3. visualize render target content and save as bmp
+4. pause the game, but rendering goes on
+5. slow game time
+
+use case
+profiler.addWatch("game tick")
+profiler.addWatch("render")
+
+game.loop():
+
+	timer.tick()
+
+	profiler.start("game tick");
+	game.step(timer.delta)
+	profiler.end("game tick");
+
+	render.draw()
+
+...
+profiler.output:
+			total calls | avg time | peak | low | last
+game tick	1234		| 0.1 	   | 0.5  | 0.01| 0.2
+rendering  	...			| ...      | ...  | ... | ...
+
+singleton<type>::instance().
+
+
+Game
+	init()
+	step(delta)
+
+RenderCore
+	init()
+	run()
+
+Timer
+	tick()
+	delta()
+
+MsgPump
+	run():
+		Game.init()
+		RenderCore.init()
+		while(1)
+		{
+			timer.tick();
+
+			Game.step(timer.delta)
+			RenderCore.run()
+		}
+
+
+
+   while (msg.message != WM_QUIT)
+    {
+        if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+        {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+        else
+        {
+			Singleton<Profiler>::instance->startTimer(logicTimer);
+            Sleep(100);
+			Singleton<Profiler>::instance->endTimer(logicTimer);
+
+			Singleton<Profiler>::instance->startTimer(renderTimer);
+            Sleep(300);
+			Singleton<Profiler>::instance->endTimer(renderTimer);
+        }
+    }
+
+render path pseudo
+----------------------------------------------
+view frustum culling 
+
+pipeline overview
+	set vertex format, shader signature
+	set shader input:
+		material
+			{ambient, diffuse, specular, shadow-factor, texture, tex-sampler, shadow-map}
+		light[]
+			{amb, diff, spec, eye_pos, local_to_world, world_to_light, light_to_proj }
+		vb, ib
+		vertex transform {world_view_proj}
+	set vs, ps
+	set render states{wireframe, default, blend, depth-only, }
+	set render target{swap-chain | texture}
+	set viewport
+	draw
+
+shadow-map pass:
+. for each light, do a depth-only pass
+
+base pass:
+. [vs]
+. [ps]for each pixel p of a visible node:
+	depth clip(early z) 
+	for each light in light[]:
+		p.color *= compute_light(p.normal, light)
+		p.color*= is_lit(p.pos, pcf(shadow_map))
+. 
+

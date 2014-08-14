@@ -1,0 +1,161 @@
+##############################################################################
+# Unreal 2.5 es2drv Rendering Code Path
+##############################################################################
+def RenderingThread.init():
+	...
+	onViewportCreated():
+		RenderMgr.initRHI():
+			...
+		ShaderMgr.initRHI():
+			load pre-compiled shaders
+			build the map<shader_key, shader_instance>
+	...
+
+#def RenderingThread.run():
+def RenderingThread::renderScene():
+	(LevelSceneNode&)node = self.mCachedNode
+	# Enter UnRenderVisibility.mm
+		# This is the core loop
+		def node.RenderCachedData(ri = node.mViewportCache->mpRI):
+
+			# once for root
+			if node.parent == 0:
+				def ri->mpSceneRI->BeginScene(SceneRenderInfo info={...}): ...
+
+			# skinned mesh
+			if node.mRenderCache.WTData.SkinnedMeshes:
+
+			# reflection
+			if node.mRenderCache.mReflectionScenes:
+				def ri->mpSceneRI->BeginSubsceneRendering(): SceneRenderInterface::mChildSceneRender = 1
+					for (SceneNode*) n in node.mRenderCache.mReflectionScenes:
+						n->Element->RenderCachedData(ri)
+				def ri->mpSceneRI->EndSubsceneRendering(): SceneRenderInterface::mChildSceneRender = 0
+
+			# base pre-pass:
+			if True:
+				# set render states
+				def node.SetSceneRenderState(RI = ri):
+					RI->setTransform(self.world2cam)
+					RI->setTransform(self.cam2screen)
+					RI->setCullMode(self.cull_mode)
+					RI->setWireframe(self.wire_frame)
+
+				if node.mRenderCache.WTData.ForegroundDPS.hasRenderableElements():
+					def node.mRenderCache.RenderDrawPrioritySet(ri, ri.sceneRI, node.mRenderCache.WTData.ForegroundDPS): ...
+				if node.mRenderCache.WTData.WorldDPS.hasRenderableElements():
+					def node.mRenderCache.RenderDrawPrioritySet(RI = ri, SceneRI = sceneri.sceneRI, DPS = node.mRenderCache.WTData.WorldDPS):
+						self = node.mRenderCache
+						# pre render
+						for (int)index in (list<int>*)DPS.mSectionDrawList:
+							def DPS.mBspBatches[index]->PreRender():
+								qsort(Model->BspNodes)
+
+						# render base pass
+						BaseSceneContext baseSC(self.mpSceneNode, mpZones)
+						if DPS.isEmpty() == False:
+							def baseSC.RenderBSP(...): ...
+							def baseSC.RenderActorList(RI = RI, (list<DynamicActor*>*)ActorList = DPS.mActorDrawList):
+								BatchRenderer* batch_renderer = baseSC.mpSceneNode->mpLevel->mpBatchRenderer
+								# Batch and render
+								if batch_renderer != 0:
+									def batch_renderer->mBaseContext.RenderActorList(RI, ActorList, (BaseSceneContext&)SceneContext = BaseSC):
+										...
+								# Direct render
+								else:
+									for (DynamicActor*) actor in ActorList:
+										def baseSC.RenderImmediate(RI = RI, (DynamicActor*)DynActor = actor):
+											###############################
+											# Generic primitive pipeline  #
+											###############################
+											if DynActor->hasCustomPrimitive == False:
+												if baseSC.SceneIsLit():
+													def baseSC.RenderBase(RI, DynActor):
+														PrimitiveInterface* pi = DynActor->mActorData.mpPrimitiveInterface
+														pi->SetBaseMeshData(DynActor, (PrimitiveRenderInterface*)&baseSC)
+														for int i = 0; i < pi->mpSectionCount; ++i:
+															populate(pi->mShaderData)
+															def pi->DrawBase(DynActor, i, (PrimitiveRenderInterface*)&baseSC):
+																...
+																def RI->SetBaseShader(pi->mShaderData):
+																	...
+																def RI->DrawPrimitive(...):
+																	...
+												else
+													def baseSC.RenderUnlit(RI, DynActor):
+														...
+											###############################
+											# Custom primitive pipeline   #
+											###############################
+											else:
+												def baseSC.RenderCustom(RI, DynActor):
+													(CustomPrimitiveInterface)cpi = DynActor->mActorData.CustomPrimitiveInterface
+													# typeof cpi == EmitterInstance
+													# EmitterInstance::Render(...)
+													def cpi->Render((SceneContext)baseSC, RI, DynActor, Lights, LightsCount):
+														baseSC.SetupZoneFog(RI, DynActor->RenderZone);
+														for int i  = 0; i < EmitterInstance::mRenderableEmitterInstances.size(); ++i:
+															(RenderableEmitterInstance)REI = EmitterInstance::mRenderableEmitterInstances[i]
+															(SubEmitterInstance)SEI = EmitterInstance::mEmitterInstances[REI.mIndex]
+															# virtual ParticleEmitterInstance::RenderParticles(...)
+															# class SpriteEmitterInstance : public ParticleEmitterInstance
+# INT SpriteEmitterInstance::RenderParticles(FSceneContext& Context, FRenderInterface& RI, FDynamicActor* DynOwner, FDynamicLight** LightTable, UINT LightCount, FMaterialInstance* MatInstance)
+
+															def REI.mInstance->RenderParticles(baseSC, RI, DynActor, ...):
+																# PerVertex Lit / Unlit Path
+																if DynActor is not lit or DynActor is with vertex light:
+																	SpriteParticleVertexStream<FPPLSpriteParticleVertex> SpriteParticleVertices
+																	ParticleShaderData shader_data.populate(VertexLit = True, PixelLit = False,  UseGPUParticles = input)
+																	def RI.SetParticleShader(shader_data):
+																		...
+																	def RI.SetIndexBuffer(0, 0):
+																		...
+																	def RI.SetDynamicStream((VertexFactory*)NULL, SpriteParticleVertices):
+																		...
+																	def RI.DrawPrimitive(PT_QUADLIST, ...):
+																		...
+																	pass
+																# PerPixel Lit Path
+																else:
+																	SpriteParticleVertexStream<FPPLSpriteParticleVertex> SpriteParticleVertices
+																	ParticleShaderData shader_data.populate(...)
+																	def RI.SetParticleShader(shader_data):
+																		...
+																	def RI.SetIndexBuffer(0, 0):
+																		...
+																	def RI.SetDynamicStream((VertexFactory*)NULL, SpriteParticleVertices):
+																		...
+																	def RI.DrawPrimitive(PT_QUADLIST, ...):
+																		...
+																	pass
+
+						...
+				node.mpRenderCache.mbBasePassComplete = True # kinda confusing, should be "BasePrePassComplete"
+
+			# subscene pass:
+			if node.mRenderCache.mSubScenes:
+				def ri->mpSceneRI->BeginSubsceneRendering(): ...
+				for (SceneNode*)n in node.mRenderCache.mSubScenes:
+					n->Element->RenderCachedData(ri)
+				def ri->mpSceneRI->EndSubsceneRendering(): ...
+
+			# once for root
+			if node.parent == 0:
+				def ri->mpSceneRI->EndScene()
+
+	# Exit UnRenderVisibility.mm
+
+def RenderingThread.exit():
+
+# code path of current particle shading in game:
+
+# adding instanced particle shader
+
+[UE3Material.h]
+public:
+	virtual void FillUE3UberShader()									_FUNC_END_
+	virtual void UpdateBlendInfo(class FShaderBlendInfo* BlendInfo)		_FUNC_END_
+	virtual void SetDiffuseTexture(UMaterial* pTex)						_FUNC_END_
+	virtual UMaterial* GetDiffuseTexture();
+	virtual int GetTexMatrix(FMatrix* OutMatrix, float TimeSeconds);
+	virtual EFrameBufferBlending GetBlending();
